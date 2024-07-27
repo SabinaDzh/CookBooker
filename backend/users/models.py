@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 
 from .validators import validate_username
 
+
 class User(AbstractUser):
     email = models.EmailField(
         max_length=254,
