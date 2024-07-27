@@ -12,7 +12,7 @@ class User(AbstractUser):
     username = models.CharField(
         max_length=150,
         unique=True,
-        validators=[validate_username,]
+        validators=[validate_username, ]
     )
     first_name = models.CharField(
         max_length=150,
