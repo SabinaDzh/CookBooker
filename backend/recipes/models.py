@@ -68,7 +68,7 @@ class Recipe(models.Model):
     )
     cooking_time = models.IntegerField(
         verbose_name='Время приготовления',
-        validators=[validate_cooking_time,]
+        validators=[validate_cooking_time]
     )
 
     class Meta:
