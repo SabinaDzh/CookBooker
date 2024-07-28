@@ -139,7 +139,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         short_url = request.build_absolute_uri(f'/r/{recipe.short_url}')
         return Response({'short-link': short_url}, status=status.HTTP_200_OK)
 
-    @action(detail=False, url_path='r/(?P<short_url>\w+)')
+    @action(detail=False, url_path=r'r/(?P<short_url>\w+)')
     def redirect_short_url(self, request, short_url=None):
         recipe = get_object_or_404(Recipe, short_url=short_url)
         return redirect(request.build_absolute_uri(f'/recipes/{recipe.id}/'))
