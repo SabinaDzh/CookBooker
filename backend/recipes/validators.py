@@ -1,15 +1,23 @@
 from django.core.exceptions import ValidationError
 
+from foodgram import constants
+
 
 def validate_cooking_time(value):
-    if value < 1 or value > 200:
+    if (value < constants.MIN_VALUE_COOCKING_TIME
+            or value > constants.MAX_VALUE_COOCKING_TIME):
         raise ValidationError(
-            'Допустимое количество времени от 1 до 200 минут'
+            f'Допустимое количество времени от '
+            f'{constants.MIN_VALUE_COOCKING_TIME} '
+            f'до {constants.MAX_VALUE_COOCKING_TIME} минут'
         )
 
 
 def validate_amount(value):
-    if value < 1 or value > 1000:
+    if (value < constants.MIN_VALUE_AMOUNT
+            or value > constants.MAX_VALUE_AMOUNT):
         raise ValidationError(
-            'Допустимое количество ингредиентов от 1 до 1000'
+            f'Допустимое количество ингредиентов от '
+            f'{constants.MIN_VALUE_AMOUNT} '
+            f'до {constants.MAX_VALUE_AMOUNT}'
         )

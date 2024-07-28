@@ -3,7 +3,6 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-import users.validators
 
 
 class Migration(migrations.Migration):
@@ -75,7 +74,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='user',
             name='username',
-            field=models.CharField(max_length=150, unique=True, validators=[users.validators.validate_username]),
+            field=models.CharField(max_length=150, unique=True),
         ),
         migrations.AddConstraint(
             model_name='subscription',

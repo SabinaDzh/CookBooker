@@ -1,27 +1,27 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
-from .validators import validate_username
+from foodgram import constants
 
 
 class User(AbstractUser):
     email = models.EmailField(
-        max_length=254,
         unique=True,
     )
     username = models.CharField(
-        max_length=150,
+        max_length=constants.MAX_LENGTH,
         unique=True,
-        validators=[validate_username,]
+        validators=[UnicodeUsernameValidator()]
     )
     first_name = models.CharField(
-        max_length=150,
+        max_length=constants.MAX_LENGTH,
     )
     last_name = models.CharField(
-        max_length=150,
+        max_length=constants.MAX_LENGTH,
     )
     password = models.CharField(
-        max_length=150,
+        max_length=constants.MAX_LENGTH,
     )
     avatar = models.ImageField(
         upload_to='users/avatars/',

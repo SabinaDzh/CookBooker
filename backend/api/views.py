@@ -1,16 +1,15 @@
 from django.db.models import Sum
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from djoser.views import UserViewSet
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import FileResponse
-from rest_framework import mixins, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from django_short_url.views import get_surl
 
 from api.filters import IngredientFilter, RecipeFilter
-from api.permissions import AuthenticatedAuthorOrReadOnly
+from api.permissions import IsAuthenticatedAuthorOrReadOnly
 from api.serializers import (FavoriteSerializer, IngredientSerializer,
                              RecipeCreateSerializer, RecipeGetSerializer,
                              ShoppingCartSerializer, TagSerialiser,
@@ -38,12 +37,10 @@ class FoodgramUserViewSet(UserViewSet):
         serializer = AvatarSerializer(
             request.user,
             data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,
-                            status=status.HTTP_200_OK)
-        return Response(serializer.errors,
-                        status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data,
+                        status=status.HTTP_200_OK)
 
     @avatar.mapping.delete
     def delete_avatar(self, request, id=None):
@@ -67,25 +64,22 @@ class FoodgramUserViewSet(UserViewSet):
     @subscribe.mapping.delete
     def delete_subscribe(self, request, id=None):
         author = get_object_or_404(User, id=id)
-        if not Subscription.objects.filter(user=request.user,
-                                           author=author).exists():
+        deleted, _ = Subscription.objects.filter(
+            user=request.user, author=author).delete()
+        if deleted == 0:
             return Response(
                 {'errors': 'Вы не подписаны на этого пользователя'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        Subscription.objects.get(user=request.user.id,
-                                 author=id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-class UserSubscriptionsViewSet(mixins.ListModelMixin,
-                               viewsets.GenericViewSet):
-    serializer_class = UserSubscribtionGetSerializer
-
-    def get_queryset(self):
-        return User.objects.filter(
-            subscription__user=self.request.user
-        )
+    @action(detail=False,
+            methods=['get'],
+            permission_classes=[IsAuthenticated])
+    def subscriptions(self, request):
+        subscriptions = User.objects.filter(subscription__user=request.user)
+        serializer = UserSubscribtionGetSerializer(subscriptions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -106,7 +100,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    permission_classes = (AuthenticatedAuthorOrReadOnly, )
+    permission_classes = (IsAuthenticatedAuthorOrReadOnly, )
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     http_method_names = ['get', 'post', 'patch', 'delete']
@@ -131,20 +125,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
             model,
             error_message,
             instance):
-        if not model.objects.filter(user=request.user,
-                                    recipe=instance).exists():
+        deleted, _ = model.objects.filter(
+            user=request.user, recipe=instance).delete()
+        if deleted == 0:
             return Response({'errors': error_message},
                             status=status.HTTP_400_BAD_REQUEST)
-        model.objects.filter(user=request.user, recipe=instance).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, url_path='get-link')
     def get_link(self, request, pk=None):
-        short_url = get_surl(
-            f'https://{request.META["HTTP_HOST"]}/recipes/{pk}')
-        return Response(
-            {'short-link': f'{request.META["HTTP_HOST"]}{short_url}'},
-            status=status.HTTP_200_OK)
+        recipe = self.get_object()
+        short_url = request.build_absolute_uri(f'/r/{recipe.short_url}')
+        return Response({'short-link': short_url}, status=status.HTTP_200_OK)
+
+    @action(detail=False, url_path='r/(?P<short_url>\w+)')
+    def redirect_short_url(self, request, short_url=None):
+        recipe = get_object_or_404(Recipe, short_url=short_url)
+        return redirect(request.build_absolute_uri(f'/recipes/{recipe.id}/'))
 
     @action(
         detail=True,

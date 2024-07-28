@@ -1,17 +1,21 @@
+import random
+import string
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 from users.models import User
+from foodgram import constants
 
-from .validators import validate_amount, validate_cooking_time
+from .validators import validate_amount, validate_cooking_time 
 
 
 class Tag(models.Model):
     name = models.CharField(
-        max_length=150,
+        max_length=constants.MAX_TAG_LENGTH,
         unique=True
     )
     slug = models.SlugField(
-        max_length=150,
+        max_length=constants.MAX_TAG_LENGTH,
         unique=True
     )
 
@@ -25,10 +29,10 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(
-        max_length=150
+        max_length=constants.MAX_INGREDIENT_NAME_LENGTH
     )
     measurement_unit = models.CharField(
-        max_length=150
+        max_length=constants.MAX_MEASUREMENT_UNIT_LENGHT
     )
 
     class Meta:
@@ -47,7 +51,7 @@ class Recipe(models.Model):
         on_delete=models.CASCADE,
     )
     name = models.CharField(
-        max_length=150,
+        max_length=constants.MAX_RECIPE_NAME_LINGHT,
         verbose_name='Название',
     )
     image = models.ImageField(
@@ -68,19 +72,41 @@ class Recipe(models.Model):
     )
     cooking_time = models.IntegerField(
         verbose_name='Время приготовления',
-        validators=[validate_cooking_time,]
+        validators=[validate_cooking_time,
+                    MinValueValidator(constants.MIN_VALUE_COOCKING_TIME),
+                    MaxValueValidator(constants.MAX_VALUE_COOCKING_TIME)]
+    )
+
+    short_url = models.CharField(
+        max_length=10,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name='Короткая ссылка'
     )
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ['-id']
+        ordering = ['name']
 
     def __str__(self):
         return self.name
 
+    def generate_short_url(self):
+        characters = string.ascii_letters + string.digits
+        short_url = ''.join(random.choice(characters) for _ in range(8))
+        while Recipe.objects.filter(short_url=short_url).exists():
+            short_url = ''.join(random.choice(characters) for _ in range(8))
+        return short_url
 
-class RicipeUserModel(models.Model):
+    def save(self, *args, **kwargs):
+        if not self.short_url:
+            self.short_url = self.generate_short_url()
+        super().save(*args, **kwargs)
+
+
+class RecipeUserModel(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         related_name='%(class)ss',
@@ -102,20 +128,20 @@ class RicipeUserModel(models.Model):
                 name='unique_together_recipe_user'
             )
         ]
-        ordering = ['-id']
+        ordering = ['recipe', 'user']
 
 
-class Favorite(RicipeUserModel):
+class Favorite(RecipeUserModel):
 
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
 
     def __str__(self):
-        return f'{self.recipe.name} в избраннном у {self.user.username}'
+        return f'{self.recipe.name} в избранном у {self.user.username}'
 
 
-class ShoppingCart(RicipeUserModel):
+class ShoppingCart(RecipeUserModel):
 
     class Meta:
         verbose_name = 'Список покупок'
@@ -141,7 +167,9 @@ class RecipeIngredient(models.Model):
     )
     amount = models.IntegerField(
         'Количество',
-        validators=[validate_amount, ]
+        validators=[validate_amount,
+                    MinValueValidator(constants.MIN_VALUE_AMOUNT),
+                    MaxValueValidator(constants.MAX_VALUE_AMOUNT)]
     )
 
     class Meta:
