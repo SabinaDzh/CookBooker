@@ -6,7 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import User
 from foodgram import constants
 
-from .validators import validate_amount, validate_cooking_time 
+from .validators import validate_amount, validate_cooking_time
 
 
 class Tag(models.Model):
