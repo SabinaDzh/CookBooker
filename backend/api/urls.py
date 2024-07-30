@@ -1,7 +1,7 @@
-from django.urls import include, path
+from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 from .views import (IngredientViewSet, RecipeViewSet, TagViewSet,
-                    FoodgramUserViewSet)
+                    FoodgramUserViewSet, short_url_redirect)
 
 router_v1 = DefaultRouter()
 router_v1.register(r'users', FoodgramUserViewSet, basename='users')
@@ -13,6 +13,6 @@ urlpatterns = [
     path('', include(router_v1.urls)),
     path('', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
-    path('r/<str:short_url>/', RecipeViewSet.as_view(
-        {'get': 'redirect_short_url'}), name='redirect_short_url'),
+    re_path(
+        r'^(?P<surl>\w+)', short_url_redirect, name='short_url_redirect'),
 ]

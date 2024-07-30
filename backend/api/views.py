@@ -1,13 +1,14 @@
 from django.http import FileResponse
 
 from django.db.models import Sum
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from djoser.views import UserViewSet
+from django.http import HttpResponseRedirect
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.permissions import IsAuthenticatedAuthorOrReadOnly
@@ -21,6 +22,12 @@ from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
 from users.models import Subscription, User
 
 from .utils import create_shopping_list
+
+
+def short_url_redirect(request, surl):
+    recipe = get_object_or_404(Recipe, short_url=surl)
+    return HttpResponseRedirect(
+        request.build_absolute_uri(f'/recipes/{recipe.id}/'))
 
 
 class FoodgramUserViewSet(UserViewSet):
@@ -74,13 +81,15 @@ class FoodgramUserViewSet(UserViewSet):
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=False,
-            methods=['get'],
-            permission_classes=[IsAuthenticated])
+    @action(detail=False, permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
-        subscriptions = User.objects.filter(subscription__user=request.user)
-        serializer = UserSubscribtionGetSerializer(subscriptions, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        subscriptions = User.objects.filter(
+            subscription__user=request.user)
+        page = self.paginate_queryset(subscriptions)
+        serializer = UserSubscribtionGetSerializer(
+            page, many=True,
+            context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -136,13 +145,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, url_path='get-link')
     def get_link(self, request, pk=None):
         recipe = self.get_object()
-        short_url = request.build_absolute_uri(f'/r/{recipe.short_url}')
-        return Response({'short-link': short_url}, status=status.HTTP_200_OK)
-
-    @action(detail=False, url_path='r/(?P<short_url>\w+)')
-    def redirect_short_url(self, request, short_url=None):
-        recipe = get_object_or_404(Recipe, short_url=short_url)
-        return redirect(request.build_absolute_uri(f'/recipes/{recipe.id}/'))
+        short_url = recipe.short_url
+        if not short_url:
+            short_url = recipe.generate_short_url()
+            recipe.short_url = short_url
+            recipe.save()
+        short_link = f'https://{request.META["HTTP_HOST"]}/{short_url}'
+        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
 
     @action(
         detail=True,

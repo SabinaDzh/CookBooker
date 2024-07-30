@@ -1,5 +1,5 @@
-import random
 import string
+import random
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -76,7 +76,6 @@ class Recipe(models.Model):
                     MinValueValidator(constants.MIN_VALUE_COOCKING_TIME),
                     MaxValueValidator(constants.MAX_VALUE_COOCKING_TIME)]
     )
-
     short_url = models.CharField(
         max_length=10,
         unique=True,
@@ -95,10 +94,11 @@ class Recipe(models.Model):
 
     def generate_short_url(self):
         characters = string.ascii_letters + string.digits
-        short_url = ''.join(random.choice(characters) for _ in range(8))
-        while Recipe.objects.filter(short_url=short_url).exists():
-            short_url = ''.join(random.choice(characters) for _ in range(8))
-        return short_url
+        while True:
+            short_url = ''.join(
+                random.choice(characters) for _ in range(constants.LENGTH_URL))
+            if not Recipe.objects.filter(short_url=short_url).exists():
+                return short_url
 
     def save(self, *args, **kwargs):
         if not self.short_url:
@@ -138,7 +138,7 @@ class Favorite(RecipeUserModel):
         verbose_name_plural = 'Избранное'
 
     def __str__(self):
-        return f'{self.recipe.name} в избранном у {self.user.username}'
+        return f'{self.recipe.name} в избраннном у {self.user.username}'
 
 
 class ShoppingCart(RecipeUserModel):
@@ -166,7 +166,7 @@ class RecipeIngredient(models.Model):
         on_delete=models.CASCADE,
     )
     amount = models.IntegerField(
-        'Количество',
+        verbose_name='Количество',
         validators=[validate_amount,
                     MinValueValidator(constants.MIN_VALUE_AMOUNT),
                     MaxValueValidator(constants.MAX_VALUE_AMOUNT)]
