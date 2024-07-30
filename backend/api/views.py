@@ -8,7 +8,6 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from djoser.views import UserViewSet
-from django.http import HttpResponseRedirect
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.permissions import IsAuthenticatedAuthorOrReadOnly
@@ -22,12 +21,6 @@ from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
 from users.models import Subscription, User
 
 from .utils import create_shopping_list
-
-
-def short_url_redirect(request, surl):
-    recipe = get_object_or_404(Recipe, short_url=surl)
-    return HttpResponseRedirect(
-        request.build_absolute_uri(f'/recipes/{recipe.id}/'))
 
 
 class FoodgramUserViewSet(UserViewSet):
