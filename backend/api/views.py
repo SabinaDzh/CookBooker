@@ -138,12 +138,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, url_path='get-link')
     def get_link(self, request, pk=None):
         recipe = self.get_object()
-        short_url = recipe.short_url
-        if not short_url:
-            short_url = recipe.generate_short_url()
-            recipe.short_url = short_url
+        if not recipe.short_url:
+            recipe.short_url = recipe.generate_short_url()
             recipe.save()
-        short_link = f'https://{request.META["HTTP_HOST"]}/{short_url}'
+
+        short_link = request.build_absolute_uri(f'/{recipe.short_url}/')
+
         return Response({'short-link': short_link}, status=status.HTTP_200_OK)
 
     @action(
