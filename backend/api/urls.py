@@ -1,4 +1,4 @@
-from django.urls import include, path, re_path
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from .views import (IngredientViewSet, RecipeViewSet, TagViewSet,
                     FoodgramUserViewSet)
@@ -14,6 +14,5 @@ urlpatterns = [
     path('', include(router_v1.urls)),
     path('', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
-    re_path(
-        r'^(?P<surl>\w+)/$', short_url_redirect, name='short_url_redirect'),
+    path('<str:surl>/', short_url_redirect, name='short_url_redirect'),
 ]
