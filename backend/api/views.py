@@ -9,7 +9,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from djoser.views import UserViewSet
 from django.http import HttpResponseRedirect
-from django.urls import reverse
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.permissions import IsAuthenticatedAuthorOrReadOnly
@@ -28,7 +27,7 @@ from .utils import create_shopping_list
 def short_url_redirect(request, surl):
     recipe = get_object_or_404(Recipe, short_url=surl)
     return HttpResponseRedirect(
-        reverse('recipes-detail', kwargs={'pk': recipe.id}))
+        request.build_absolute_uri(f'/recipes/{recipe.id}/'))
 
 
 class FoodgramUserViewSet(UserViewSet):
@@ -153,11 +152,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe.save()
         short_link = f'https://{request.META["HTTP_HOST"]}/{short_url}'
         return Response({'short-link': short_link}, status=status.HTTP_200_OK)
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
 
     @action(
         detail=True,
