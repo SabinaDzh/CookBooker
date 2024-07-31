@@ -1,13 +1,13 @@
 from django.http import FileResponse
-
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
+
 from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from djoser.views import UserViewSet
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.permissions import IsAuthenticatedAuthorOrReadOnly
@@ -16,11 +16,10 @@ from api.serializers import (FavoriteSerializer, IngredientSerializer,
                              ShoppingCartSerializer, TagSerialiser,
                              AvatarSerializer, UserSubscribeSerializer,
                              UserSubscribtionGetSerializer)
+from api.utils import create_shopping_list
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingCart, Tag)
 from users.models import Subscription, User
-
-from .utils import create_shopping_list
 
 
 class FoodgramUserViewSet(UserViewSet):
@@ -135,14 +134,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        if self.kwargs.get('pk'):
+            filter_kwargs = {'pk': self.kwargs['pk']}
+        elif self.kwargs.get('short_url'):
+            filter_kwargs = {'short_url': self.kwargs['short_url']}
+        else:
+            return super().get_object()
+        obj = get_object_or_404(queryset, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
     @action(detail=True, url_path='get-link')
     def get_link(self, request, pk=None):
         recipe = self.get_object()
-        if not recipe.short_url:
-            recipe.short_url = recipe.generate_short_url()
-            recipe.save()
-
-        short_link = request.build_absolute_uri(f'/{recipe.short_url}/')
+        short_link = request.build_absolute_uri(f'/{recipe.short_url}')
 
         return Response({'short-link': short_link}, status=status.HTTP_200_OK)
 

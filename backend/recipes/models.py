@@ -6,13 +6,10 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import User
 from foodgram import constants
 
-from .validators import validate_amount, validate_cooking_time
-
 
 class Tag(models.Model):
     name = models.CharField(
         max_length=constants.MAX_TAG_LENGTH,
-        unique=True
     )
     slug = models.SlugField(
         max_length=constants.MAX_TAG_LENGTH,
@@ -72,9 +69,12 @@ class Recipe(models.Model):
     )
     cooking_time = models.IntegerField(
         verbose_name='Время приготовления',
-        validators=[validate_cooking_time,
-                    MinValueValidator(constants.MIN_VALUE_COOCKING_TIME),
-                    MaxValueValidator(constants.MAX_VALUE_COOCKING_TIME)]
+        validators=[MinValueValidator(constants.MIN_VALUE_COOCKING_TIME,
+                    message=('Время приготовления должно быть не менее '
+                             f'{constants.MIN_VALUE_COOCKING_TIME} минут.')),
+                    MaxValueValidator(constants.MAX_VALUE_COOCKING_TIME,
+                    message=('Время приготовления не может превышать '
+                             f'{constants.MAX_VALUE_COOCKING_TIME} минут.'))]
     )
     short_url = models.CharField(
         max_length=10,
@@ -167,9 +167,13 @@ class RecipeIngredient(models.Model):
     )
     amount = models.IntegerField(
         verbose_name='Количество',
-        validators=[validate_amount,
-                    MinValueValidator(constants.MIN_VALUE_AMOUNT),
-                    MaxValueValidator(constants.MAX_VALUE_AMOUNT)]
+        validators=[MinValueValidator(constants.MIN_VALUE_AMOUNT,
+                    message=('Количество должно быть не менее '
+                             f'{constants.MIN_VALUE_AMOUNT}.')),
+                    MaxValueValidator(constants.MAX_VALUE_AMOUNT,
+                    message=('Количество не может превышать '
+                             f'{constants.MAX_VALUE_AMOUNT}.'))
+                    ]
     )
 
     class Meta:

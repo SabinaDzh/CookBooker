@@ -1,27 +1,20 @@
-import re
+from django.db.transaction import atomic
 
-from djoser.serializers import UserCreateSerializer
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
-from drf_extra_fields.fields import Base64ImageField
-from django.db.transaction import atomic
 
 from recipes.models import (Favorite, Ingredient, Recipe,
                             RecipeIngredient, ShoppingCart, Tag)
 from users.models import (User, Subscription)
 
 
-class UserSignUpSerializer(UserCreateSerializer):
+class UserSignUpSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
         fields = ['email', 'id', 'username', 'first_name',
                   'last_name', 'password']
-
-    def validate_username(self, value):
-        if not re.match(r"^[\w.@+-]+\Z", value):
-            raise serializers.ValidationError('Неверное имя пользователя')
-        return value
 
 
 class UserGetSerializer(serializers.ModelSerializer):
@@ -257,7 +250,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         return data
 
-    def create_ingredients(self, ingredients, recipe):
+    @staticmethod
+    def create_ingredients(ingredients, recipe):
         ingredient_list = []
         for ingredient in ingredients:
             ingredient_id = ingredient.get('ingredient').id

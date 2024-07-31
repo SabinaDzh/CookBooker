@@ -1,14 +1,15 @@
 from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
-from .views import (IngredientViewSet, RecipeViewSet, TagViewSet,
-                    FoodgramUserViewSet)
-from .short_url import short_url_redirect
+
+from api.views import (IngredientViewSet, RecipeViewSet, TagViewSet,
+                       FoodgramUserViewSet)
+from api.short_url import short_url_redirect
 
 router_v1 = DefaultRouter()
-router_v1.register(r'users', FoodgramUserViewSet, basename='users')
-router_v1.register(r'ingredients', IngredientViewSet, basename='ingredients')
-router_v1.register(r'tags', TagViewSet, basename='tags')
-router_v1.register(r'recipes', RecipeViewSet, basename='recipes')
+router_v1.register('users', FoodgramUserViewSet, basename='users')
+router_v1.register('ingredients', IngredientViewSet, basename='ingredients')
+router_v1.register('tags', TagViewSet, basename='tags')
+router_v1.register('recipes', RecipeViewSet, basename='recipes')
 
 urlpatterns = [
     path('', include(router_v1.urls)),
