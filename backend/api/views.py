@@ -66,7 +66,7 @@ class FoodgramUserViewSet(UserViewSet):
         author = get_object_or_404(User, id=id)
         deleted, _ = Subscription.objects.filter(
             user=request.user, author=author).delete()
-        if deleted == 0:
+        if not deleted:
             return Response(
                 {'errors': 'Вы не подписаны на этого пользователя'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -129,17 +129,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
             instance):
         deleted, _ = model.objects.filter(
             user=request.user, recipe=instance).delete()
-        if deleted == 0:
+        if not deleted:
             return Response({'errors': error_message},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
-        if self.kwargs.get('pk'):
-            filter_kwargs = {'pk': self.kwargs['pk']}
-        elif self.kwargs.get('short_url'):
-            filter_kwargs = {'short_url': self.kwargs['short_url']}
+        pk = self.kwargs.get('pk')
+        short_url = self.kwargs.get('short_url')
+        if pk:
+            filter_kwargs = {'pk': pk}
+        elif short_url:
+            filter_kwargs = {'short_url': short_url}
         else:
             return super().get_object()
         obj = get_object_or_404(queryset, **filter_kwargs)
@@ -149,7 +151,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, url_path='get-link')
     def get_link(self, request, pk=None):
         recipe = self.get_object()
-        short_link = request.build_absolute_uri(f'/{recipe.short_url}')
+        short_link = request.build_absolute_uri(f'/{recipe.short_url}/')
 
         return Response({'short-link': short_link}, status=status.HTTP_200_OK)
 
